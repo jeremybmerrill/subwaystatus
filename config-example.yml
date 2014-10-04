@@ -1,0 +1,11 @@
+trains:
+  - C
+  - 123
+  - B
+email:
+  from: fromaddress@yourdomain.com
+  to: destinateion@yourdomain.com
+  address: your.mail.server.yourdomain.com 
+  port: 465
+  username: username@yourdomain.com #maybe just `username`
+  password: yOuReMaIlPaSsWoRd
