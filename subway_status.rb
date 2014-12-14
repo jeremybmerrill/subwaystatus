@@ -64,10 +64,10 @@ if okay_line
       subject += " (" + screwed.map(&:slashify).join(", ") + " " + (screwed.size > 1 ? 'are' : 'is') + " totally fucked)"
     end
     body = maybe_screwed.to_a.map{|name, text| "<h1>#{name}</h1><p>#{text.strip}</p>"}.join('<br />')
-    plaintextbody = maybe_screwed.to_a.map{|name, text| "name\n---------\ntext.strip"}.join("\n\n")
+    plaintextbody = maybe_screwed.to_a.map{|name, text| "name\n---------\n#{text.strip}"}.join("\n\n")
   elsif !screwed.empty?
     subject = "Take the #{okay_line.slashify} train: #{screwed.map(&:slashify).join(", ")} #{screwed.size > 1 ? 'are' : 'is'} fucked"
-    body = nil
+    body = screwed.to_a.map{|name, text| "#{name}\n---------\n#{text.strip}"}.join("\n\n")
   else
     exit(1) #primary train works, \o/
   end
@@ -75,14 +75,14 @@ else
   if screwed.empty?
     subject = "All your lines may be screwed ¯\\_(ツ)_/¯"
     body = maybe_screwed.to_a.map{|name, text| "<h1>#{name}</h1><p>#{text.strip}</p>"}.join('<br />')
-    plaintextbody = maybe_screwed.to_a.map{|name, text| "name\n---------\ntext.strip"}.join("\n\n")
+    plaintextbody = maybe_screwed.to_a.map{|name, text| "#{name}\n---------\n#{text.strip}"}.join("\n\n")
   elsif maybe_screwed.empty?
     subject = "All your lines are screwed :("
-    body = nil
+    body = screwed.to_a.map{|name, text| "#{name}\n---------\#{ntext.strip}"}.join("\n\n")
   else
     subject = maybe_screwed.keys.map(&:slashify).join(", ") + " may be screwed; #{screwed.map(&:slashify).join(", ")} #{screwed.size > 1 ? 'are' : 'is'} fucked"
     body = maybe_screwed.to_a.map{|name, text| "<h1>#{name}</h1><p>#{text.strip}</p>"}.join('<br />')
-    plaintextbody = maybe_screwed.to_a.map{|name, text| "name\n---------\ntext.strip"}.join("\n\n")
+    plaintextbody = maybe_screwed.to_a.map{|name, text| "#{name}\n---------\n#{text.strip}"}.join("\n\n")
   end
 end
 
@@ -120,6 +120,8 @@ Mail.defaults do
   }
 end
 
+puts plaintextbody
+
 # $stdout.puts subject + (body.nil? ? '' : ("|" + htmlbody))
 Mail.deliver do
   from     config['email']['from']
@@ -134,7 +136,7 @@ Mail.deliver do
     content_type 'text/html; charset=UTF-8'
     body htmlbody
   end
-end
+end unless ENV['NOMAIL']
 exit(0)
 
 # output possibilities
