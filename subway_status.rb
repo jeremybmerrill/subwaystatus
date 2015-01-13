@@ -11,6 +11,7 @@ require 'nokogiri'
 require 'open-uri'
 require 'yaml'
 require 'mail'
+require 'aws-sdk'
 
 config = YAML.load(open('config.yml').read)
 
@@ -67,7 +68,8 @@ if okay_line
     plaintextbody = maybe_screwed.to_a.map{|name, text| "name\n---------\n#{text.strip}"}.join("\n\n")
   elsif !screwed.empty?
     subject = "Take the #{okay_line.slashify} train: #{screwed.map(&:slashify).join(", ")} #{screwed.size > 1 ? 'are' : 'is'} fucked"
-    body = screwed.to_a.map{|name, text| "#{name}\n---------\n#{text.strip}"}.join("\n\n")
+    body = screwed.to_a.map{|name, text| "#{name}\n---------\n#{text.to_s.strip}"}.join("\n\n")
+    plaintextbody = maybe_screwed.to_a.map{|name, text| "name\n---------\n#{text.strip}"}.join("\n\n")
   else
     exit(1) #primary train works, \o/
   end
@@ -79,6 +81,7 @@ else
   elsif maybe_screwed.empty?
     subject = "All your lines are screwed :("
     body = screwed.to_a.map{|name, text| "#{name}\n---------\#{ntext.strip}"}.join("\n\n")
+    plaintextbody = maybe_screwed.to_a.map{|name, text| "#{name}\n---------\n#{text.strip}"}.join("\n\n")
   else
     subject = maybe_screwed.keys.map(&:slashify).join(", ") + " may be screwed; #{screwed.map(&:slashify).join(", ")} #{screwed.size > 1 ? 'are' : 'is'} fucked"
     body = maybe_screwed.to_a.map{|name, text| "<h1>#{name}</h1><p>#{text.strip}</p>"}.join('<br />')
@@ -108,35 +111,41 @@ htmlbody += <<-eos
 </html>
 eos
 
-Mail.defaults do
-  delivery_method :smtp, { 
-    :address => config['email']['address'],
-    :port => config['email']['port'],
-    :user_name => config['email']['username'],
-    :password => config['email']['password'],
-    :authentication => :plain,
-    :tls => true,
-    :openssl_verify_mode => OpenSSL::SSL::VERIFY_NONE, 
-  }
+if config['sns'] && config['sns']['secret_access_key'] && config['sns']['arn']&& config['sns']['access_key_id']
+  AWS.config(access_key_id: config['sns']['access_key_id'], secret_access_key: config['sns']['secret_access_key'])
+  sns = AWS::SNS::Topic.new(config['sns']['arn'])
+   sns.publish( plaintextbody, :subject => subject )
+else
+  Mail.defaults do
+    delivery_method :smtp, { 
+      :address => config['email']['address'],
+      :port => config['email']['port'],
+      :user_name => config['email']['username'],
+      :password => config['email']['password'],
+      :authentication => :plain,
+      :tls => true,
+      # :openssl_verify_mode => OpenSSL::SSL::VERIFY_NONE, 
+    }
+  end
+
+
+  # $stdout.puts subject + (body.nil? ? '' : ("|" + htmlbody))
+  Mail.deliver do
+    from     config['email']['from']
+    to       config['email']['to']
+    subject  subject
+
+    text_part do
+      body plaintextbody
+    end
+
+    html_part do
+      content_type 'text/html; charset=UTF-8'
+      body htmlbody
+    end
+  end unless ENV['NOMAIL']
 end
-
 puts plaintextbody
-
-# $stdout.puts subject + (body.nil? ? '' : ("|" + htmlbody))
-Mail.deliver do
-  from     config['email']['from']
-  to       config['email']['to']
-  subject  subject
-
-  text_part do
-    body plaintextbody
-  end
-
-  html_part do
-    content_type 'text/html; charset=UTF-8'
-    body htmlbody
-  end
-end unless ENV['NOMAIL']
 exit(0)
 
 # output possibilities
