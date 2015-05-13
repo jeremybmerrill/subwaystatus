@@ -77,11 +77,11 @@ if okay_line
       subject += " (" + screwed.keys.map(&:slashify).join(", ") + " " + (screwed.size > 1 ? 'are' : 'is') + " totally fucked)"
     end
     body = maybe_screwed.to_a.map{|name, text| "<h1>#{name}</h1><p>#{text.strip}</p>"}.join('<br />')
-    plaintextbody = maybe_screwed.to_a.map{|name, text| "name\n---------\n#{text.strip}"}.join("\n\n")
+    plaintextbody = maybe_screwed.to_a.map{|name, text| "#{name}\n---------\n#{text.strip}"}.join("\n\n")
   elsif !screwed.empty?
     subject = "Take the #{okay_line.slashify} train: #{screwed.keys.map(&:slashify).join(", ")} #{screwed.size > 1 ? 'are' : 'is'} fucked"
     body = screwed.to_a.map{|name, text| "#{name}\n---------\n#{text.to_s.strip}"}.join("\n\n")
-    plaintextbody = screwed.to_a.map{|name, text| "name\n---------\n#{text.to_s.strip}"}.join("\n\n")
+    plaintextbody = screwed.to_a.map{|name, text| "#{name}\n---------\n#{text.to_s.strip}"}.join("\n\n")
   else
     exit(1) #primary train works, \o/
   end
