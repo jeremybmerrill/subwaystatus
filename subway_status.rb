@@ -12,8 +12,16 @@ require 'open-uri'
 require 'yaml'
 require 'mail'
 require 'aws-sdk'
+require 'csv'
 
 config = YAML.load(open('config.yml').read)
+
+statuses_csv = "statuses.csv"
+if File.exists?(statuses_csv)
+  statuses = CSV.open(statuses_csv, 'rb').to_a.each(&:freeze)
+else
+  statuses = []
+end
 
 lines = config["trains"].map(&:to_s)
 
@@ -42,7 +50,11 @@ line_statuses = status_page.xpath('//line')
 
 lines.each_with_index do |line, index|
   line_status = line_statuses.to_a.find{|status| Regexp.new(line) =~ status.xpath('name').text }
-  puts [line, line_status.xpath('name').text].inspect
+
+  status = [line_status.xpath('name').text, line_status.xpath('status').text, line_status.xpath('text').text]
+  status.freeze
+  statuses << status unless statuses.include?( status )
+
   if line_status.xpath('status').text =~ /GOOD SERVICE/
     okay_line = line
     break
@@ -114,7 +126,7 @@ eos
 if config['sns'] && config['sns']['secret_access_key'] && config['sns']['arn']&& config['sns']['access_key_id']
   AWS.config(access_key_id: config['sns']['access_key_id'], secret_access_key: config['sns']['secret_access_key'])
   sns = AWS::SNS::Topic.new(config['sns']['arn'])
-   sns.publish( plaintextbody, :subject => subject )
+  sns.publish( plaintextbody, :subject => subject ) unless ENV['NOMAIL']
 else
   Mail.defaults do
     delivery_method :smtp, { 
@@ -145,7 +157,9 @@ else
     end
   end unless ENV['NOMAIL']
 end
-puts plaintextbody
+
+CSV.open(statuses_csv, 'wb'){|csv| statuses.each{|status| csv << status } }
+
 exit(0)
 
 # output possibilities
