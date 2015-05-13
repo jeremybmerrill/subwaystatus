@@ -74,7 +74,7 @@ if okay_line
   if !maybe_screwed.empty?
     subject = maybe_screwed.keys.map(&:slashify).join(", ") + " may be screwed; #{okay_line.slashify} is okay"
     if !screwed.empty?
-      subject += " (" + screwed.map(&:slashify).join(", ") + " " + (screwed.size > 1 ? 'are' : 'is') + " totally fucked)"
+      subject += " (" + screwed.keys.map(&:slashify).join(", ") + " " + (screwed.size > 1 ? 'are' : 'is') + " totally fucked)"
     end
     body = maybe_screwed.to_a.map{|name, text| "<h1>#{name}</h1><p>#{text.strip}</p>"}.join('<br />')
     plaintextbody = maybe_screwed.to_a.map{|name, text| "name\n---------\n#{text.strip}"}.join("\n\n")
