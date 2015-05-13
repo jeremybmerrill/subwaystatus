@@ -42,7 +42,7 @@ else
   end
 end
 
-screwed = []
+screwed = {}
 maybe_screwed = {}
 okay_line = nil
 
@@ -59,7 +59,7 @@ lines.each_with_index do |line, index|
     okay_line = line
     break
   elsif line_status.xpath('status').text =~ /DELAYS/
-    screwed << line
+    screwed[line] = line_status.xpath('text').text
   elsif line_status.xpath('status').text =~ /SERVICE CHANGE|PLANNED WORK/
     maybe_screwed[line] = line_status.xpath('text').text
   else
@@ -79,9 +79,9 @@ if okay_line
     body = maybe_screwed.to_a.map{|name, text| "<h1>#{name}</h1><p>#{text.strip}</p>"}.join('<br />')
     plaintextbody = maybe_screwed.to_a.map{|name, text| "name\n---------\n#{text.strip}"}.join("\n\n")
   elsif !screwed.empty?
-    subject = "Take the #{okay_line.slashify} train: #{screwed.map(&:slashify).join(", ")} #{screwed.size > 1 ? 'are' : 'is'} fucked"
+    subject = "Take the #{okay_line.slashify} train: #{screwed.keys.map(&:slashify).join(", ")} #{screwed.size > 1 ? 'are' : 'is'} fucked"
     body = screwed.to_a.map{|name, text| "#{name}\n---------\n#{text.to_s.strip}"}.join("\n\n")
-    plaintextbody = maybe_screwed.to_a.map{|name, text| "name\n---------\n#{text.strip}"}.join("\n\n")
+    plaintextbody = screwed.to_a.map{|name, text| "name\n---------\n#{text.to_s.strip}"}.join("\n\n")
   else
     exit(1) #primary train works, \o/
   end
@@ -92,7 +92,7 @@ else
     plaintextbody = maybe_screwed.to_a.map{|name, text| "#{name}\n---------\n#{text.strip}"}.join("\n\n")
   elsif maybe_screwed.empty?
     subject = "All your lines are screwed :("
-    body = screwed.to_a.map{|name, text| "#{name}\n---------\#{ntext.strip}"}.join("\n\n")
+    body = screwed.to_a.map{|name, text| "#{name}\n---------\#{text.strip}"}.join("\n\n")
     plaintextbody = maybe_screwed.to_a.map{|name, text| "#{name}\n---------\n#{text.strip}"}.join("\n\n")
   else
     subject = maybe_screwed.keys.map(&:slashify).join(", ") + " may be screwed; #{screwed.map(&:slashify).join(", ")} #{screwed.size > 1 ? 'are' : 'is'} fucked"
@@ -139,7 +139,6 @@ else
       # :openssl_verify_mode => OpenSSL::SSL::VERIFY_NONE, 
     }
   end
-
 
   # $stdout.puts subject + (body.nil? ? '' : ("|" + htmlbody))
   Mail.deliver do
